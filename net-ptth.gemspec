@@ -10,6 +10,7 @@ Gem::Specification.new do |s|
   s.files        = `git ls-files`.split("\n")
   s.test_files   = `git ls-files test`.split("\n")
 
+  s.add_dependency("rack", "~> 1.4.4")
   s.add_dependency("celluloid-io", "~> 0.12.1")
   s.add_dependency("http-parser-lite", "~> 0.6.0")
 

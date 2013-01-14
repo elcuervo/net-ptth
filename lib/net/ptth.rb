@@ -1,4 +1,5 @@
 require "uri"
+require "rack"
 require "net/http"
 require "http-parser"
 require "celluloid/io"
@@ -66,13 +67,32 @@ class Net::PTTH
         log res
 
         headers = {}
-        body = nil
+        path = nil
+        body = ""
 
         @parser.reset
         parse_headers(headers)
 
-        @parser.on_body { |response_body| body = response_body }
-        @parser.on_message_complete { block.call(body, headers) }
+        @parser.on_url { |url| path = url }
+        @parser.on_body { |response_body| body = StringIO.new(response_body) }
+        @parser.on_message_complete do
+          env = {
+            "PATH_INFO" => path,
+            "rack.input" => body,
+            "REQUEST_METHOD" => @parser.http_method,
+          }
+
+          env.tap do |h|
+            h["CONTENT_LENGTH"] = body.length if body
+          end
+
+          request = Rack::Request.new(env)
+          headers.each do |header, value|
+            request[header] = value
+          end
+
+          block.call(request)
+        end
 
         @parser << res
       end

@@ -1,34 +1,11 @@
 require_relative "./test_helper"
 require "net/ptth"
+require "net/ptth/test"
 
 describe "PTTH connection" do
   before do
-    Thread.new do
-      @server = TCPServer.new(23045)
-
-      loop do
-        client = @server.accept
-
-        switch_protocols = <<-EOS.gsub(/^\s+/, '')
-          HTTP/1.1 101 Switching Protocols
-          Date: Mon, 14 Jan 2013 11:54:24 GMT
-          Upgrade: PTTH/1.0
-          Connection: Upgrade
-
-
-        EOS
-
-        post_response  = "POST /reversed HTTP/1.1\n"
-        post_response += "Content-Length: 8\n"
-        post_response += "Accept: */*\n"
-        post_response += "\n"
-        post_response += "reversed"
-
-        client.puts switch_protocols
-        sleep 0.5
-        client.puts post_response
-      end
-    end
+    @server = Net::PTTH::TestServer.new(port: 23045)
+    Thread.new { @server.start }
   end
 
   after do
@@ -39,8 +16,31 @@ describe "PTTH connection" do
     ptth = Net::PTTH.new("http://localhost:23045")
     request = Net::HTTP::Post.new("/reverse")
 
-    ptth.request(request) do |body|
-      assert_equal "reversed", body
+    ptth.request(request) do |incoming_request|
+      assert_equal "reversed", incoming_request.body.read
+      ptth.close
+    end
+  end
+end
+
+describe "PTTH Test server" do
+  before do
+    response = Net::HTTP::Get.new("/other")
+    @server = Net::PTTH::TestServer.new(port: 23045, response: response)
+
+    Thread.new { @server.start }
+  end
+
+  after do
+    @server.close
+  end
+
+  it "should be able to switch the incoming test request" do
+    ptth = Net::PTTH.new("http://localhost:23045")
+    request = Net::HTTP::Post.new("/reverse")
+
+    ptth.request(request) do |incoming_request|
+      assert_equal "/other", incoming_request.path
       ptth.close
     end
   end
