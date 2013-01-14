@@ -2,6 +2,10 @@
 
 `Net::HTTP` compatible `PTTH` client
 
+## You misspelled HTTP
+
+No I don't: http://wiki.secondlife.com/wiki/Reverse_HTTP
+
 ## Installation
 
 ```bash
