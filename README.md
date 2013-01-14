@@ -22,5 +22,8 @@ ptth = Net::PTTH.new("http://localhost:23045")
 request = Net::HTTP::Post.new("/reverse")
 ptth.request(request) do |body, headers|
   # Handle the body of the incomming request through the reverse connection
+  # This will be executed with each new request.
+  # You can close the connection with:
+  # ptth.close
 end
 ```
