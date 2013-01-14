@@ -5,6 +5,7 @@ Gem::Specification.new do |s|
   s.description  = "PTTH Ruby client. Net::HTTP compatible... kind of"
   s.authors      = ["elcuervo"]
   s.email        = ["yo@brunoaguirre.com"]
+  s.licenses     = ["MIT", "HUGWARE"]
   s.homepage     = "http://github.com/elcuervo/net-ptth"
   s.files        = `git ls-files`.split("\n")
   s.test_files   = `git ls-files test`.split("\n")
