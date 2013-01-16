@@ -5,7 +5,17 @@ require "http-parser"
 require "celluloid/io"
 
 class Net::PTTH
+  class Request
+    attr_accessor :path, :body, :headers
+
+    def initialize(path = "", body = "", headers = {})
+      @path, @body, @headers = path, body, headers
+    end
+  end
+
   include Celluloid::IO
+
+  attr_accessor :app
 
   # Public: Constructor
   #
@@ -66,32 +76,12 @@ class Net::PTTH
         log "[Incoming response]"
         log res
 
-        headers = {}
-        path = nil
-        body = ""
+        request = Request.new
+        build_request(request)
 
-        @parser.reset
-        parse_headers(headers)
-
-        @parser.on_url { |url| path = url }
-        @parser.on_body { |response_body| body = StringIO.new(response_body) }
         @parser.on_message_complete do
-          env = {
-            "PATH_INFO" => path,
-            "rack.input" => body,
-            "REQUEST_METHOD" => @parser.http_method,
-          }
-
-          env.tap do |h|
-            h["CONTENT_LENGTH"] = body.length if body
-          end
-
-          request = Rack::Request.new(env)
-          headers.each do |header, value|
-            request[header] = value
-          end
-
-          block.call(request)
+          env = build_env(request)
+          callbacks(env, &block)
         end
 
         @parser << res
@@ -103,6 +93,57 @@ class Net::PTTH
   end
 
   private
+
+  # Private: Executes the app and/or block callbacks
+  #
+  #   env: The Rack compatible env
+  #   &block: From the request
+  #
+  def callbacks(env, &block)
+    case
+    when app then app.call(env)
+    when block
+      request = Rack::Request.new(env)
+      block.call(request)
+    else
+      close
+    end
+  end
+
+  # Private: Builds a Rack compatible env from a PTTH::Request
+  #
+  #   request: A PTTH parsed request
+  #
+  def build_env(request)
+    env = {
+      "PATH_INFO" => request.path,
+      "SCRIPT_NAME" => "",
+      "rack.input" => request.body,
+      "REQUEST_METHOD" => @parser.http_method,
+    }
+
+    env.tap do |h|
+      h["CONTENT_LENGTH"] = request.body.length if request.body
+    end
+
+    env.merge!(request.headers) if request.headers
+  end
+
+
+  # Private: Builds a PTTH::Request from the parsed input
+  #
+  #   request: The object where the parsed content will be placed
+  #
+  def build_request(request)
+    @parser.reset
+    parse_headers(request.headers)
+
+    @parser.on_url { |url| request.path = url }
+    @parser.on_body do |response_body|
+      request.body = StringIO.new(response_body)
+    end
+  end
+
 
   # Private: Logs a debug message
   #
@@ -125,7 +166,13 @@ class Net::PTTH
     @parser.on_header_value &add_header
     @parser.on_headers_complete do
       raw_headers.each_slice(2) do |key, value|
-        headers[key] = value
+        header_name = key.
+          gsub(/([A-Z]+)([A-Z][a-z])/,'\1_\2').
+          gsub(/([a-z\d])([A-Z])/,'\1_\2').
+          tr("-", "_").
+          upcase
+
+        headers["HTTP_" + header_name] = value
       end
     end
   end
