@@ -28,3 +28,26 @@ ptth.request(request) do |incomming_request|
   # ptth.close
 end
 ```
+
+## Rack compatiblity
+
+An app can be defined to be mounted like rackup will. So you can do things like
+this:
+
+```ruby
+require 'net/ptth'
+require 'net/http'
+
+ptth = Net::PTTH.new("http://localhost:23045")
+ptth.app = Cuba.define do
+  on "dog" do
+    res.write "Hello? this is dog"
+  end
+end
+
+request = Net::HTTP::Post.new("/reverse")
+ptth.request(request)
+```
+
+And let the app handle the responses of the reverse connection.
+Both Cuba and sinatra were tested
