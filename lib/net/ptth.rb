@@ -59,23 +59,15 @@ class Net::PTTH
 
     packet = build(req)
 
-    log "[Writting packet]"
-    log packet
+    write(packet)
 
-    @socket.write(packet)
-
-    response = @socket.readpartial(1024)
-    log "[Reading response]"
-    log response
+    response = read
     @parser << response
 
     if @parser.http_status == 101
       log "[Switching protocols]"
 
-      while res = @socket.readpartial(1024)
-        log "[Incoming response]"
-        log res
-
+      while res = read
         request = Request.new
         build_request(request)
 
@@ -94,6 +86,22 @@ class Net::PTTH
 
   private
 
+  def read(bytes = 1024)
+    response = @socket.readpartial(bytes)
+
+    log "[Reading response]"
+    log response
+
+    response
+  end
+
+  def write(string)
+    log "[Writting packet]"
+    log string
+
+    @socket.write(string)
+  end
+
   # Private: Executes the app and/or block callbacks
   #
   #   env: The Rack compatible env
@@ -101,13 +109,24 @@ class Net::PTTH
   #
   def callbacks(env, &block)
     case
-    when app then app.call(env)
+    when app
+      response = build_response(*app.call(env))
+      write response
     when block
       request = Rack::Request.new(env)
       block.call(request)
     else
       close
     end
+  end
+
+  def build_response(status, headers, body)
+    response = "#{status} HTTP/1.1\n"
+    headers.each { |key, value| response += "#{key}: #{value}\n" }
+    response += "\n\r"
+    body.each { |chunk| response += chunk }
+
+    response
   end
 
   # Private: Builds a Rack compatible env from a PTTH::Request
