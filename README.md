@@ -9,7 +9,7 @@ No I don't: http://wiki.secondlife.com/wiki/Reverse_HTTP
 ## Installation
 
 ```bash
-  gem install net-ptth
+gem install net-ptth
 ```
 
 ## Usage
@@ -30,6 +30,9 @@ end
 ```
 
 ## Rack compatiblity
+
+_Remember that letting an app handle the responses it's also in charge of
+closing the reverse connection if needed_
 
 An app can be defined to be mounted like rackup will. So you can do things like
 this:
