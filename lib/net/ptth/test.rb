@@ -39,7 +39,7 @@ module Net
           client.puts switch_protocols
           sleep 0.5
           client.puts post_response
-          client.read
+          client.read unless client.eof?
         end
       end
 
