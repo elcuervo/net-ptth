@@ -42,7 +42,7 @@ class Net::PTTH
   # Public: Closes de current connection
   #
   def close
-    log "[Closing connection]"
+    log "Closing connection"
     @socket.close if @socket
   end
 
@@ -55,7 +55,7 @@ class Net::PTTH
   def request(req, &block)
     @socket ||= TCPSocket.new(@host, @port)
 
-    log "[Connecting...]"
+    log "Connecting to #{@host}:#{@port}"
 
     packet = build(req)
 
@@ -65,7 +65,7 @@ class Net::PTTH
     @parser << response
 
     if @parser.http_status == 101
-      log "[Switching protocols]"
+      log "Switching protocols"
 
       while res = read
         request = Request.new
@@ -89,17 +89,18 @@ class Net::PTTH
   def read(bytes = 1024)
     response = @socket.readpartial(bytes)
 
-    log "[Reading response]"
-    log response
+    log "Reading response"
+    log response, "-> "
 
     response
   end
 
   def write(string)
-    log "[Writting packet]"
-    log string
+    log "Writting response"
+    log string[0..200], "<- "
 
-    @socket.write(string)
+    bytes = @socket.write(string)
+    log "#{bytes} bytes written"
   end
 
   # Private: Executes the app and/or block callbacks
@@ -121,7 +122,8 @@ class Net::PTTH
   end
 
   def build_response(status, headers, body)
-    response = "#{status} HTTP/1.1\n"
+    log "Building Response"
+    response = "HTTP/1.1 #{status} OK\n"
     headers.each { |key, value| response += "#{key}: #{value}\n" }
     response += "\n\r"
     body.each { |chunk| response += chunk }
@@ -142,7 +144,7 @@ class Net::PTTH
     }
 
     env.tap do |h|
-      h["CONTENT_LENGTH"] = request.body.length if request.body
+      h["CONTENT_LENGTH"] = request.body.length if !request.body.nil?
     end
 
     env.merge!(request.headers) if request.headers
@@ -168,8 +170,10 @@ class Net::PTTH
   #
   #   message: The string to be logged
   #
-  def log(message)
-    @debug_output << message + "\n"
+  def log(message, prepend = "*  ")
+    parts = (message || "").split("\n")
+    @debug_output << parts.map { |line| prepend + line }.join("\n")
+    @debug_output << "\n"
   end
 
   # Private: Parses the incoming request headers and adds the information to a
@@ -201,15 +205,18 @@ class Net::PTTH
   #   req: The request to be build
   #
   def build(req)
-    req["Upgrade"]    ||= "PTTH/1.0"
-    req["Connection"] ||= "Upgrade"
+    req["Upgrade"]          = "PTTH/1.0"
+    req["Connection"]     ||= "Upgrade"
+    req["Content-Length"] ||= req.body.length if !req.body.nil?
 
     package  = "#{req.method} #{req.path} HTTP/1.1\n"
     req.each_header do |header, value|
-      package += "#{header.split("-").map(&:capitalize).join("-")}: #{value}\n"
+      header_parts = header.split("-").map(&:capitalize)
+      package += "#{header_parts.join("-")}: #{value}\n"
     end
 
-    package += "\n\r#{req.body}"
-    package += "\n\r\n\r"
+    package += "\n\r#{req.body}" if req.body
+    package += "\r\n\r\n"
+    package
   end
 end

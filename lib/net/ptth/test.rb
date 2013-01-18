@@ -26,9 +26,8 @@ module Net
             HTTP/1.1 101 Switching Protocols
             Date: Mon, 14 Jan 2013 11:54:24 GMT
             Upgrade: PTTH/1.0
+            Content-Length: 0
             Connection: Upgrade
-
-
           EOS
 
           post_response  = "#{@response.method} #{@response.path} HTTP/1.1\n"
@@ -40,6 +39,7 @@ module Net
           client.puts switch_protocols
           sleep 0.5
           client.puts post_response
+          client.read
         end
       end
 
