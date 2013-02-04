@@ -25,9 +25,11 @@ class Net::PTTH
   #
   def initialize(address, port = 80)
     info = URI.parse(address)
+    colors = %w(1;30 0;34 0;32 0;36 0;31 0;35 0;33 1;33 0;37 1;37)
 
     @host, @port = info.host, info.port || port
     @parser = HTTP::Parser.new
+    @debug_color = colors.sample
     @debug_output = StringIO.new
   end
 
@@ -68,10 +70,11 @@ class Net::PTTH
       log "Switching protocols"
 
       while res = read
-        request = Request.new
-        build_request(request)
+        log "Reading response"
+        log res, "-> "
 
-        @parser.on_message_complete do
+        request = Request.new
+        build_request(request) do
           env = build_env(request)
           callbacks(env, &block)
         end
@@ -87,12 +90,7 @@ class Net::PTTH
   private
 
   def read(bytes = 1024)
-    response = @socket.readpartial(bytes)
-
-    log "Reading response"
-    log response, "-> "
-
-    response
+    @socket.readpartial(bytes)
   end
 
   def write(string)
@@ -155,7 +153,7 @@ class Net::PTTH
   #
   #   request: The object where the parsed content will be placed
   #
-  def build_request(request)
+  def build_request(request, &block)
     @parser.reset
     parse_headers(request.headers)
 
@@ -163,6 +161,8 @@ class Net::PTTH
     @parser.on_body do |response_body|
       request.body = StringIO.new(response_body)
     end
+
+    @parser.on_message_complete(&block)
   end
 
 
@@ -172,8 +172,13 @@ class Net::PTTH
   #
   def log(message, prepend = "*  ")
     parts = (message || "").split("\n")
-    @debug_output << parts.map { |line| prepend + line }.join("\n")
+
+    @debug_output << add_color(parts.map { |line| prepend + line }.join("\n"))
     @debug_output << "\n"
+  end
+
+  def add_color(message)
+    "\e[0;#{@debug_color}m#{message}\e[0m"
   end
 
   # Private: Parses the incoming request headers and adds the information to a
