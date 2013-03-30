@@ -1,20 +1,18 @@
 require "uri"
 require "rack"
 require "net/http"
-require "http-parser"
-require "celluloid/io"
 
+require "net/ptth/socket"
+require "net/ptth/parser"
+require "net/ptth/response"
+require "net/ptth/incoming_request"
+require "net/ptth/outgoing_response"
+require "net/ptth/outgoing_request"
+
+# Public: PTTH constructor.
+#   Attempts to mimic HTTP when applicable
+#
 class Net::PTTH
-  class Request
-    attr_accessor :path, :body, :headers
-
-    def initialize(path = "", body = "", headers = {})
-      @path, @body, @headers = path, body, headers
-    end
-  end
-
-  include Celluloid::IO
-
   attr_accessor :app
 
   # Public: Constructor
@@ -25,11 +23,8 @@ class Net::PTTH
   #
   def initialize(address, port = 80)
     info = URI.parse(address)
-    colors = %w(1;30 0;34 0;32 0;36 0;31 0;35 0;33 1;33 0;37 1;37)
 
     @host, @port = info.host, info.port || port
-    @parser = HTTP::Parser.new
-    @debug_color = colors.sample
     @debug_output = StringIO.new
   end
 
@@ -44,184 +39,91 @@ class Net::PTTH
   # Public: Closes de current connection
   #
   def close
-    log "Closing connection"
-    @socket.close if @socket
+    socket.close if socket
+  end
+
+  # Public: Access to the PTTH::Socket
+  #
+  def socket
+    @_socket ||= Net::PTTH::Socket.new(@host, @port)
+  end
+
+  # Public: Access to the PTTH::Parser
+  #
+  def parser
+    @_parser ||= Net::PTTH::Parser.new
   end
 
   # Public: Generates a request based on a Net::HTTP object and yields a
   #         response
   #
   #   req: The request to be executed
-  #   &block: That will handle the response
   #
-  def request(req, &block)
-    @socket ||= TCPSocket.new(@host, @port)
+  def request(req)
+    outgoing = Net::PTTH::OutgoingRequest.new(req)
+    socket.write(outgoing.to_s)
 
-    log "Connecting to #{@host}:#{@port}"
+    parser.reset
+    response = ""
+    while !parser.finished?
+      buffer = socket.read
+      debug "= #{buffer}"
 
-    packet = build(req)
+      response << buffer
+      parser   << buffer
+    end
 
-    write(packet)
+    debug "* Initial Response: #{response}"
 
-    response = read
-    @parser << response
+    if parser.upgrade?
+      debug "* Upgrade response"
+      debug "* Reading socket"
 
-    if @parser.http_status == 101
-      log "Switching protocols"
+      while socket.open?
+        response = ""
+        parser.reset
 
-      while res = read
-        log "Reading response"
-        log res, "-> "
+        buffer = socket.read
+        response << buffer
+        parser << buffer
 
-        request = Request.new
-        build_request(request) do
-          env = build_env(request)
-          callbacks(env, &block)
+        if parser.finished?
+          parser.body = buffer.split("\r\n\r\n").last
         end
 
-        @parser << res
+        incoming = Net::PTTH::IncomingRequest.new(
+          parser.http_method,
+          parser.url,
+          parser.headers,
+          parser.body
+        )
+
+        env = incoming.to_env
+        outgoing_response = Net::PTTH::OutgoingResponse.new(*app.call(env))
+        socket.write(outgoing_response.to_s)
       end
+    else
+      debug "* Simple request"
+
+      Net::PTTH::Response.new(
+        parser.http_method,
+        parser.status_code,
+        parser.headers,
+        parser.body
+      )
     end
+
   rescue IOError => e
   rescue EOFError => e
-    @socket.close
+    close
   end
 
   private
 
-  def read(bytes = 1024)
-    @socket.readpartial(bytes)
-  end
-
-  def write(string)
-    log "Writting response"
-    log string[0..200], "<- "
-
-    bytes = @socket.write(string)
-    log "#{bytes} bytes written"
-  end
-
-  # Private: Executes the app and/or block callbacks
+  # Private: outputs debug information
+  #   string: The string to be logged
   #
-  #   env: The Rack compatible env
-  #   &block: From the request
-  #
-  def callbacks(env, &block)
-    case
-    when app
-      response = build_response(*app.call(env))
-      write response
-    when block
-      request = Rack::Request.new(env)
-      block.call(request)
-    else
-      close
-    end
-  end
-
-  def build_response(status, headers, body)
-    log "Building Response"
-    response = "HTTP/1.1 #{status} OK\n"
-    headers.each { |key, value| response += "#{key}: #{value}\n" }
-    response += "\n\r"
-    body.each { |chunk| response += chunk }
-
-    response
-  end
-
-  # Private: Builds a Rack compatible env from a PTTH::Request
-  #
-  #   request: A PTTH parsed request
-  #
-  def build_env(request)
-    env = {
-      "PATH_INFO" => request.path,
-      "SCRIPT_NAME" => "",
-      "rack.input" => request.body,
-      "REQUEST_METHOD" => @parser.http_method,
-    }
-
-    env.tap do |h|
-      h["CONTENT_LENGTH"] = request.body.length if !request.body.nil?
-    end
-
-    env.merge!(request.headers) if request.headers
-  end
-
-
-  # Private: Builds a PTTH::Request from the parsed input
-  #
-  #   request: The object where the parsed content will be placed
-  #
-  def build_request(request, &block)
-    @parser.reset
-    parse_headers(request.headers)
-
-    @parser.on_url { |url| request.path = url }
-    @parser.on_body do |response_body|
-      request.body = StringIO.new(response_body)
-    end
-
-    @parser.on_message_complete(&block)
-  end
-
-
-  # Private: Logs a debug message
-  #
-  #   message: The string to be logged
-  #
-  def log(message, prepend = "*  ")
-    parts = (message || "").split("\n")
-
-    @debug_output << add_color(parts.map { |line| prepend + line }.join("\n"))
-    @debug_output << "\n"
-  end
-
-  def add_color(message)
-    "\e[0;#{@debug_color}m#{message}\e[0m"
-  end
-
-  # Private: Parses the incoming request headers and adds the information to a
-  #          given object
-  #
-  #   headers: The object in which the headers will be added
-  #
-  def parse_headers(headers)
-    raw_headers = []
-    add_header = proc { |header| raw_headers << header }
-
-    @parser.on_header_field &add_header
-    @parser.on_header_value &add_header
-    @parser.on_headers_complete do
-      raw_headers.each_slice(2) do |key, value|
-        header_name = key.
-          gsub(/([A-Z]+)([A-Z][a-z])/,'\1_\2').
-          gsub(/([a-z\d])([A-Z])/,'\1_\2').
-          tr("-", "_").
-          upcase
-
-        headers["HTTP_" + header_name] = value
-      end
-    end
-  end
-
-  # Private: Builds a reversed request
-  #
-  #   req: The request to be build
-  #
-  def build(req)
-    req["Upgrade"]          = "PTTH/1.0"
-    req["Connection"]     ||= "Upgrade"
-    req["Content-Length"] ||= req.body.length if !req.body.nil?
-
-    package  = "#{req.method} #{req.path} HTTP/1.1\n"
-    req.each_header do |header, value|
-      header_parts = header.split("-").map(&:capitalize)
-      package += "#{header_parts.join("-")}: #{value}\n"
-    end
-
-    package += "\n\r#{req.body}" if req.body
-    package += "\r\n\r\n"
-    package
+  def debug(string)
+    @debug_output << string + "\n"
   end
 end

@@ -4,27 +4,6 @@ require "sinatra/base"
 require "net/ptth"
 require "net/ptth/test"
 
-describe "PTTH connection" do
-  before do
-    @server = Net::PTTH::TestServer.new(port: 23045)
-    Thread.new { @server.start }
-  end
-
-  after do
-    @server.close
-  end
-
-  it "should stablish a reverse connection" do
-    ptth = Net::PTTH.new("http://localhost:23045")
-    request = Net::HTTP::Post.new("/reverse")
-
-    ptth.request(request) do |incoming_request|
-      assert_equal "reversed", incoming_request.body.read
-      ptth.close
-    end
-  end
-end
-
 describe "Using a Rack compatible app to receive requests" do
   before do
     response = Net::HTTP::Get.new("/custom_app")
@@ -74,7 +53,8 @@ end
 
 describe "PTTH Test server" do
   before do
-    response = Net::HTTP::Get.new("/other")
+    response = Net::HTTP::Post.new("/other")
+    response.body = "thing"
     @server = Net::PTTH::TestServer.new(port: 23045, response: response)
 
     Thread.new { @server.start }
@@ -88,9 +68,12 @@ describe "PTTH Test server" do
     ptth = Net::PTTH.new("http://localhost:23045")
     request = Net::HTTP::Post.new("/reverse")
 
-    ptth.request(request) do |incoming_request|
-      assert_equal "/other", incoming_request.path
-      ptth.close
+    ptth.app = Cuba.define do
+      on "other" do
+        ptth.close
+      end
     end
+
+    ptth.request(request)
   end
 end

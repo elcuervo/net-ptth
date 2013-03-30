@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name         = "net-ptth"
-  s.version      = "0.0.5"
+  s.version      = "0.0.6.pre14"
   s.summary      = "Net::HTTP compatible reverse HTTP version"
   s.description  = "PTTH Ruby client. Net::HTTP compatible... kind of"
   s.authors      = ["elcuervo"]
@@ -12,7 +12,7 @@ Gem::Specification.new do |s|
 
   s.add_dependency("rack", "~> 1.4.4")
   s.add_dependency("celluloid-io", "~> 0.12.1")
-  s.add_dependency("http-parser-lite", "~> 0.6.0")
+  s.add_dependency("http_parser.rb", "~> 0.5.3")
 
   s.add_development_dependency("minitest", "~> 4.4.0")
   s.add_development_dependency("cuba", "~> 3.1.0")
