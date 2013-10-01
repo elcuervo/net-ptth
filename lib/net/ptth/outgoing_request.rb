@@ -1,5 +1,5 @@
 class Net::PTTH
-  class OutgoingRequest < Struct.new(:req)
+  OutgoingRequest = Struct.new(:req) do
     def to_s
       package = "#{req.method} #{req.path} HTTP/1.1\n"
 
@@ -11,7 +11,6 @@ class Net::PTTH
       end
 
       package += "\n\r#{req.body}" if req.body
-      package += "\r\n\r\n"
       package
     end
   end

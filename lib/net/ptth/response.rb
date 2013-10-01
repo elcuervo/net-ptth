@@ -1,5 +1,5 @@
 class Net::PTTH
-  class Response < Struct.new(:method, :status, :headers, :body)
+  Response = Struct.new(:method, :status, :headers, :body) do
     def [](key)
       headers[key]
     end

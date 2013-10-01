@@ -1,7 +1,7 @@
 require "celluloid/io"
 
 class Net::PTTH
-  class Socket < Struct.new(:host, :port)
+  Socket = Struct.new(:host, :port) do
     include Celluloid::IO
 
     def read(bytes = 10240)

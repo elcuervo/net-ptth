@@ -13,6 +13,8 @@ require "net/ptth/outgoing_request"
 #   Attempts to mimic HTTP when applicable
 #
 class Net::PTTH
+  include Celluloid
+
   attr_accessor :app
 
   # Public: Constructor
@@ -21,10 +23,11 @@ class Net::PTTH
   #   port: An optional port if the port is different from the one in the
   #         address
   #
-  def initialize(address, port = 80)
+  def initialize(address, options = {})
     info = URI.parse(address)
 
-    @host, @port = info.host, info.port || port
+    @host, @port = info.host, info.port || options.fetch(:port, 80)
+    @keep_alive = options.fetch(:keep_alive, false)
     @debug_output = StringIO.new
   end
 
@@ -39,6 +42,7 @@ class Net::PTTH
   # Public: Closes de current connection
   #
   def close
+    @keep_alive = false
     socket.close if socket
   end
 
@@ -78,6 +82,7 @@ class Net::PTTH
     if parser.upgrade?
       debug "* Upgrade response"
       debug "* Reading socket"
+      parser.reset
 
       while socket.open?
         response = ""
@@ -105,12 +110,16 @@ class Net::PTTH
     else
       debug "* Simple request"
 
-      Net::PTTH::Response.new(
+      response = Net::PTTH::Response.new(
         parser.http_method,
         parser.status_code,
         parser.headers,
         parser.body
       )
+
+      keep_connection_active if keep_alive?(response)
+
+      response
     end
 
   rescue IOError => e
@@ -119,6 +128,17 @@ class Net::PTTH
   end
 
   private
+
+  def keep_alive?(response)
+    response.status == 200 && @keep_alive
+  end
+
+  def keep_connection_active
+    while @keep_alive do
+      socket.write("<3")
+      sleep 1
+    end
+  end
 
   # Private: outputs debug information
   #   string: The string to be logged

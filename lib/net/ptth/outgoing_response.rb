@@ -1,5 +1,5 @@
 class Net::PTTH
-  class OutgoingResponse < Struct.new(:status, :headers, :body)
+  OutgoingResponse = Struct.new(:status, :headers, :body) do
     def to_s
       packet = "HTTP/1.1 #{status} OK\n"
       headers.each { |key, value| packet += "#{key}: #{value}\n" }

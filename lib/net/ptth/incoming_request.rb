@@ -1,5 +1,5 @@
 class Net::PTTH
-  class IncomingRequest < Struct.new(:method, :path, :headers, :body)
+  IncomingRequest = Struct.new(:method, :path, :headers, :body) do
     def to_env
       env = {
         "PATH_INFO" => path,
