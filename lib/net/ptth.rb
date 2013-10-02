@@ -17,6 +17,8 @@ class Net::PTTH
 
   attr_accessor :app
 
+  CRLF = "\r\n"
+
   # Public: Constructor
   #
   #   address: The address where the connection will be made
@@ -65,7 +67,7 @@ class Net::PTTH
   #
   def request(req)
     outgoing = Net::PTTH::OutgoingRequest.new(req)
-    socket.write(outgoing.to_s)
+    socket.write(outgoing.to_s + CRLF)
 
     parser.reset
     response = ""
@@ -93,7 +95,7 @@ class Net::PTTH
         parser << buffer
 
         if parser.finished?
-          parser.body = buffer.split("\r\n\r\n").last
+          parser.body = buffer.split(CRLF*2).last
         end
 
         incoming = Net::PTTH::IncomingRequest.new(
@@ -109,6 +111,10 @@ class Net::PTTH
       end
     else
       debug "* Simple request"
+
+      if parser.finished?
+        parser.body = buffer.split(CRLF*2).last
+      end
 
       response = Net::PTTH::Response.new(
         parser.http_method,
@@ -134,9 +140,11 @@ class Net::PTTH
   end
 
   def keep_connection_active
-    while @keep_alive do
-      socket.write("<3")
-      sleep 1
+    after(1) do
+      while @keep_alive do
+        socket.write("<3")
+        sleep 1
+      end
     end
   end
 
