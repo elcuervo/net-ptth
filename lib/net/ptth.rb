@@ -144,6 +144,8 @@ class Net::PTTH
   def keep_connection_active
     after(1) do
       while @keep_alive do
+        # All you need is love. Something to keep alive the connection of that
+        # given socket
         socket.write("<3")
         sleep 1
       end
