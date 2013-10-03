@@ -4,7 +4,7 @@ class Net::PTTH
   Socket = Struct.new(:host, :port) do
     include Celluloid::IO
 
-    def read(bytes = 10240)
+    def read(bytes = 1024)
       raw_socket.readpartial(bytes)
     end
 
