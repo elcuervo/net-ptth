@@ -45,7 +45,7 @@ class Net::PTTH
   #
   def close
     @keep_alive = false
-    socket.close if socket
+    socket.close if socket.open?
   end
 
   # Public: Access to the PTTH::Socket
@@ -146,7 +146,7 @@ class Net::PTTH
       while @keep_alive do
         # All you need is love. Something to keep alive the connection of that
         # given socket
-        socket.write("<3")
+        socket.write("<3") if socket.open?
         sleep 1
       end
     end
