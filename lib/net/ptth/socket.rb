@@ -14,6 +14,8 @@ class Net::PTTH
 
     def close
       raw_socket.close
+    rescue IOError => e
+      # I'm already closed
     end
 
     def open?
