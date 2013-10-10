@@ -1,6 +1,8 @@
 require "celluloid/io"
 
 class Net::PTTH
+  SocketError = Class.new(StandardError)
+
   Socket = Struct.new(:host, :port) do
     include Celluloid::IO
 
@@ -9,17 +11,34 @@ class Net::PTTH
     end
 
     def write(data)
-      raw_socket.write(data)
+      retries = 3
+      begin
+        raw_socket.write(data)
+      rescue Errno::EPIPE => e
+        retry_count -= 1
+        if retry_count > 0
+          retry
+        else
+          raise SocketError.new("Couldn't reconnect! Errno::EPIPE")
+        end
+      end
     end
 
     def close
-      raw_socket.close
+      close_socket
     rescue IOError => e
       # I'm already closed
     end
 
     def open?
       !raw_socket.closed?
+    end
+
+    private
+
+    def close_socket
+      @_socket = nil
+      raw_socket.close
     end
 
     def raw_socket
