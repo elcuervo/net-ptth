@@ -46,6 +46,7 @@ class Net::PTTH
   def close
     @keep_alive = false
     socket.close if socket.open?
+    @_socket = nil
   end
 
   # Public: Access to the PTTH::Socket
