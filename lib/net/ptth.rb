@@ -1,6 +1,7 @@
 require "uri"
 require "rack"
 require "net/http"
+require "logger"
 
 require "net/ptth/socket"
 require "net/ptth/parser"
@@ -30,7 +31,7 @@ class Net::PTTH
 
     @host, @port = info.host, info.port || options.fetch(:port, 80)
     @keep_alive = options.fetch(:keep_alive, false)
-    @debug_output = StringIO.new
+    set_debug_output = StringIO.new
   end
 
   # Public: Mimics Net::HTTP set_debug_output
@@ -39,6 +40,11 @@ class Net::PTTH
   #
   def set_debug_output=(output)
     @debug_output = output
+    Celluloid.logger = if output.is_a?(String)
+                         ::Logger.new(output)
+                       else
+                         output
+                       end
   end
 
   # Public: Closes de current connection
@@ -157,6 +163,7 @@ class Net::PTTH
   #   string: The string to be logged
   #
   def debug(string)
+    return unless @debug_output
     @debug_output << string + "\n"
   end
 end
