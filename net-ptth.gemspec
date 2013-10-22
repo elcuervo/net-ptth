@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name         = "net-ptth"
-  s.version      = "0.0.12"
+  s.version      = "0.0.13"
   s.summary      = "Net::HTTP compatible reverse HTTP version"
   s.description  = "PTTH Ruby client. Net::HTTP compatible... kind of"
   s.authors      = ["elcuervo"]
@@ -10,8 +10,8 @@ Gem::Specification.new do |s|
   s.files        = `git ls-files`.split("\n")
   s.test_files   = `git ls-files test`.split("\n")
 
-  s.add_dependency("rack", "~> 1.4.5")
-  s.add_dependency("celluloid-io", "~> 0.15.0")
+  s.add_dependency("rack",           "~> 1.5.2")
+  s.add_dependency("celluloid-io",   "~> 0.15.0")
   s.add_dependency("http_parser.rb", "~> 0.5.3")
 
   s.add_development_dependency("minitest", "~> 4.4.0")
