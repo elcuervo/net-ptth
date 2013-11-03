@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    net-ptth (0.0.13)
+    net-ptth (0.0.14)
       celluloid-io (~> 0.15.0)
       http_parser.rb (~> 0.5.3)
       rack (~> 1.5.2)
