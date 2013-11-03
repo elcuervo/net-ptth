@@ -11,7 +11,7 @@ class Net::PTTH
     end
 
     def write(data)
-      retries = 3
+      retry_count = 3
       begin
         raw_socket.write(data)
       rescue Errno::EPIPE => e
