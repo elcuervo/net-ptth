@@ -15,6 +15,8 @@ class Net::PTTH
       begin
         raw_socket.write(data)
       rescue Errno::EPIPE => e
+        close unless open?
+
         retry_count -= 1
         if retry_count > 0
           retry
