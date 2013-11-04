@@ -1,9 +1,9 @@
 PATH
   remote: .
   specs:
-    net-ptth (0.0.14)
+    net-ptth (0.0.15)
       celluloid-io (~> 0.15.0)
-      http_parser.rb (~> 0.5.3)
+      http_parser.rb (~> 0.6.0.beta.2)
       rack (~> 1.5.2)
 
 GEM
@@ -23,7 +23,7 @@ GEM
       debugger-ruby_core_source (~> 1.2.3)
     debugger-linecache (1.2.0)
     debugger-ruby_core_source (1.2.3)
-    http_parser.rb (0.5.3)
+    http_parser.rb (0.6.0.beta.2)
     minitest (4.4.0)
     nio4r (0.5.0)
     rack (1.5.2)
