@@ -74,8 +74,7 @@ class Net::PTTH
   #
   def request(req)
     outgoing = Net::PTTH::OutgoingRequest.new(req)
-    packet = outgoing.to_s + CRLF
-
+    packet = outgoing.to_s
     socket.write(packet)
 
     parser.reset
