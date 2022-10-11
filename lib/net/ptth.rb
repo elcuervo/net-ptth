@@ -31,7 +31,7 @@ class Net::PTTH
 
     @host, @port = info.host, info.port || options.fetch(:port, 80)
     @keep_alive = options.fetch(:keep_alive, false)
-    set_debug_output = StringIO.new
+    self.set_debug_output = StringIO.new
   end
 
   # Public: Mimics Net::HTTP set_debug_output
