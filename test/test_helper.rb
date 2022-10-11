@@ -6,3 +6,9 @@ require "minitest/pride"
 require "minitest/autorun"
 require "net/ptth"
 
+class Minitest::Spec
+  def setup
+    Celluloid.shutdown
+    Celluloid.boot
+  end
+end
