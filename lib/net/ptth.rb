@@ -40,10 +40,11 @@ class Net::PTTH
   #
   def set_debug_output=(output)
     @debug_output = output
-    Celluloid.logger = if output.is_a?(String)
-                         ::Logger.new(output)
-                       else
+
+    Celluloid.logger = if output.respond_to?(:debug)
                          output
+                       else
+                         ::Logger.new(output)
                        end
   end
 
