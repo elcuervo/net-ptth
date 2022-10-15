@@ -11,6 +11,8 @@ class Net::PTTH
       env["CONTENT_LENGTH"] = body.length unless body.nil?
 
       env.merge!(headers) if headers
+
+      env
     end
   end
 end
