@@ -8,9 +8,11 @@ class Net::PTTH
         "REQUEST_METHOD" => method,
       }
 
-      env.tap { |h| h["CONTENT_LENGTH"] = body.length if !body.nil? }
+      env["CONTENT_LENGTH"] = body.length unless body.nil?
 
       env.merge!(headers) if headers
+
+      env
     end
   end
 end
