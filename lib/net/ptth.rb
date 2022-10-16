@@ -31,7 +31,7 @@ class Net::PTTH
 
     @host, @port = info.host, info.port || options.fetch(:port, 80)
     @keep_alive = options.fetch(:keep_alive, false)
-    set_debug_output = StringIO.new
+    self.set_debug_output = StringIO.new
   end
 
   # Public: Mimics Net::HTTP set_debug_output
@@ -40,10 +40,11 @@ class Net::PTTH
   #
   def set_debug_output=(output)
     @debug_output = output
-    Celluloid.logger = if output.is_a?(String)
-                         ::Logger.new(output)
-                       else
+
+    Celluloid.logger = if output.respond_to?(:debug)
                          output
+                       else
+                         ::Logger.new(output)
                        end
   end
 
