@@ -10,7 +10,7 @@ Gem::Specification.new do |s|
   s.files        = `git ls-files`.split("\n")
   s.test_files   = `git ls-files test`.split("\n")
 
-  s.required_ruby_version = "< 2"
+  s.required_ruby_version = ">= 2.7.0"
 
   s.add_dependency("rack",           ">= 1.4.5")
   s.add_dependency("celluloid-io",   ">= 0.15.0")
