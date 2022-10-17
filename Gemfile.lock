@@ -4,7 +4,6 @@ PATH
     net-ptth (0.0.17)
       celluloid-io (>= 0.15.0)
       http_parser.rb (>= 0.6.0.beta.2)
-      rack (>= 1.4.5)
 
 GEM
   remote: http://rubygems.org/

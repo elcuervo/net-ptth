@@ -1,5 +1,4 @@
 require "uri"
-require "rack"
 require "net/http"
 require "logger"
 
