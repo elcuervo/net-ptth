@@ -39,3 +39,6 @@ DEPENDENCIES
   net-ptth!
   rake
   sinatra (~> 1.3.3)
+
+BUNDLED WITH
+   2.3.24
