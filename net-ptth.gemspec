@@ -12,12 +12,11 @@ Gem::Specification.new do |s|
 
   s.required_ruby_version = ">= 2.7.0"
 
-  s.add_dependency("rack",           ">= 1.4.5")
   s.add_dependency("celluloid-io",   ">= 0.15.0")
   s.add_dependency("http_parser.rb", ">= 0.6.0.beta.2")
 
   s.add_development_dependency("minitest", "~> 4.4.0")
-  s.add_development_dependency("cuba", "~> 3.1.0")
+  s.add_development_dependency("cuba", "< 4")
   s.add_development_dependency("rubocop", "~> 1")
-  s.add_development_dependency("sinatra", "~> 1.3.3")
+  s.add_development_dependency("sinatra", "< 4")
 end
